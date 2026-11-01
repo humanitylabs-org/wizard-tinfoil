@@ -40,7 +40,7 @@ def serve(handler, key):
         if key is None:
             terminal('signed_out'); return
         process = subprocess.Popen(['node', str(Path(__file__).with_name('realtime.mjs'))],
-                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, umask=0o077)
         process.stdin.write(json.dumps({'type': 'init', 'key': key}) + '\n'); process.stdin.flush()
 
         def forward():

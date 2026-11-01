@@ -45,9 +45,26 @@ PREFERRED = ('glm-5-3', 'kimi-k3', 'deepseek-v4-1-flash', 'gpt-oss-120b', 'llama
 REGISTERED = 2
 def chat_models(models): return [m for m in models if not any(x in m for x in NOT_CHAT)]
 
-def atomic(name, obj):
+def harden_storage():
+    if DATA.is_symlink(): raise ValueError('Private storage unavailable.')
     DATA.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(DATA,0o700)
+    # Metadata-only repair: never deserialize or rewrite existing canonical bytes.
+    for name in ('connection.json','admin.json','gateway-token.json'):
+        path = DATA/name
+        if path.is_symlink(): raise ValueError('Private storage unavailable.')
+        if path.exists(): os.chmod(path,0o600)
+    cache = DATA/'.tinfoil'
+    if cache.is_symlink(): raise ValueError('Private storage unavailable.')
+    if cache.exists():
+        os.chmod(cache,0o700)
+        path = cache/'user_cache_secret'
+        if path.is_symlink(): raise ValueError('Private storage unavailable.')
+        if path.exists(): os.chmod(path,0o600)
+
+
+def atomic(name, obj):
+    harden_storage()
     fd, tmp = tempfile.mkstemp(dir=DATA, prefix='.pending-')
     try:
         with os.fdopen(fd,'w') as f:
@@ -170,7 +187,11 @@ def status():
 
 def worker(action, key, payload=None):
     # Kill on timeout; no upstream exception/headers/body may reach logs or clients.
-    result = subprocess.run([sys.executable,str(ROOT/'app/provider.py'),action],input=json.dumps({'key':key,'payload':payload}),text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,timeout=45 if action=='verify' else 180)
+    harden_storage()
+    try:
+        result = subprocess.run([sys.executable,str(ROOT/'app/provider.py'),action],input=json.dumps({'key':key,'payload':payload}),text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,timeout=45 if action=='verify' else 180,umask=0o077)
+    finally:
+        harden_storage()
     if result.returncode: raise ValueError('Verification or provider request failed. Saved connection unchanged.')
     return json.loads(result.stdout)
 
@@ -329,7 +350,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def initialize():
     os.umask(0o077)
-    DATA.mkdir(mode=0o700,parents=True,exist_ok=True); os.chmod(DATA,0o700)
+    harden_storage()
     if not (DATA/'gateway-token.json').exists(): atomic('gateway-token.json',{'token':secrets.token_urlsafe(48)})
 
 def reconcile():
@@ -338,7 +359,13 @@ def reconcile():
         s = stored()
         if s and s.get('agent') != 'registered': atomic('connection.json',{**s,'agent':register(s.get('models') or [])})
 
+class Server(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        # Never log provider exception text, request data, or credentials.
+        sys.stderr.write('Connection request failed.\n')
+
+
 if __name__=='__main__':
     initialize()
     threading.Thread(target=reconcile, daemon=True).start()
-    ThreadingHTTPServer((os.environ.get('BIND','0.0.0.0'),int(PORT)),Handler).serve_forever()
+    Server((os.environ.get('BIND','0.0.0.0'),int(PORT)),Handler).serve_forever()
