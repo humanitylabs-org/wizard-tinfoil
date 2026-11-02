@@ -19,6 +19,8 @@ services:
       XDG_DATA_HOME: /data/private/share
       WIZARD_TRUSTED_HOSTS: ${WIZARD_TRUSTED_HOSTS:-}
       WIZARD_TRUSTED_ORIGINS: ${WIZARD_TRUSTED_ORIGINS:-}
+      # The box owner's tailnet login (the App Manager writes it at install): /api/* through Tailscale Serve answers only it.
+      WIZARD_OWNER_LOGINS: ${WIZARD_OWNER_LOGINS:-}
       # The agent's dashboard: the Hermes Agent app by name, or (alongside) the host dashboard the App Manager sets.
       WIZARD_TINFOIL_HERMES_URL: ${WIZARD_TINFOIL_HERMES_URL:-http://hermes-agent:9119}
       HERMES_DASHBOARD_BASIC_AUTH_USERNAME: ${HERMES_DASHBOARD_BASIC_AUTH_USERNAME:-hermes}
