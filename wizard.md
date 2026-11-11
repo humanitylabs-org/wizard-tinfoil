@@ -4,7 +4,7 @@ id: wizard-tinfoil
 name: Tinfoil
 type: external
 category: system
-version: 0.3.8
+version: 0.3.9
 summary: Private AI. Connect your Tinfoil API key and your agent gets a private, enclave-verified model.
 tags: [security]
 license: GPL-3.0-only
@@ -35,6 +35,9 @@ uses: [hermes-agent]
 needs: []
 health: /healthz
 icon: icon.png
+switches:
+  contract: wizard.app-switches/1
+  path: /api/switches
 ---
 
 # Tinfoil
