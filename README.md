@@ -37,3 +37,13 @@ The recipe uses uid 1000, a read-only root filesystem, dropped capabilities, no-
 Production checks exercised the actual Wizard launcher iframe at phone and desktop widths on all three owner shell ports: masked input, successful real free attestation/catalog read with an explicitly synthetic invalid key, pending authentication, Test, Disconnect, no page errors or horizontal overflow, and live hosted theme handshake. The synthetic key was removed. Restart preserved the independent bearer and left provider credentials absent. No paid inference was performed.
 
 Official docs: https://docs.tinfoil.sh/sdk/python-sdk , https://docs.tinfoil.sh/sdk/overview , https://docs.tinfoil.sh/tutorials/coding-agents . Wizard contract: `humanitylabs-org/wizard-os` `spec/AI_CONNECTIONS.md`.
+
+## Relay mode for the Private agent (switch `private-relay`, off by default)
+
+wizard-os `spec/PRIVATE_PROVIDERS.md` (DECISIONS #66), slice 4. Turn it on in the app's switches (`GET/POST /api/switches`, the Tracker's Try it). With it on:
+
+- `app/relay.py` serves the ciphertext-only relay on port 8090: `GET /attestation` (the declared enclave's bundle from `atc.tinfoil.sh`) and `POST /v1/*` to the `*.tinfoil.sh` enclave named in `X-Tinfoil-Enclave-Url`. It checks the client token, swaps in the Tinfoil key and copies the `Ehbp-*` headers and encrypted bodies through untouched, streaming. It never decrypts, parses or logs bodies. Only peers on a 10.252.x.0/24 relay network the runtime attaches are admitted.
+- Box-only `POST /api/private-clients {agent}` → `{token, relay_url}` and `DELETE /api/private-clients/<agent>` for the Agent Service. Only the token's SHA-256 is stored; a token works only on the relay.
+- Relay-network peers are refused on the management port.
+
+With it off, the relay port and `/api/private-clients` answer 404 and nothing else changes. Attaching the relay network (and keeping it off the tailnet, the shell and other apps) is the Agent Service's side.
