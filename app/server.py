@@ -55,7 +55,7 @@ NOT_CHAT = ('embed', 'tts', 'whisper', 'voxtral', 'doc-upload', 'pii-filter', 'w
 # the agent's private choices, first one the default.
 PREFERRED = ('glm-5-3', 'deepseek-v4-1-flash', 'gpt-oss-120b', 'llama3-3-70b')
 KIMI = re.compile(r'^kimi-k(\d+)(?:[.-](\d+))?(-pro)?$')
-REGISTERED = 2
+REGISTERED = 3  # newest Kimi, GLM 5.3, DeepSeek V4.1 Flash: owner can pick a fast model too (Miguel, 18 Nov 2026)
 MODEL_REFRESH = int(os.environ.get('WIZARD_TINFOIL_MODEL_REFRESH','21600'))  # re-read Tinfoil's catalogue every 6 h
 def chat_models(models): return [m for m in models if not any(x in m for x in NOT_CHAT)]
 def kimi_version(m):
